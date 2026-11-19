@@ -1,0 +1,71 @@
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Injectable, InjectionToken, inject } from '@angular/core';
+import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { CoreSearchResponse, CoreWork, SearchParams } from './models';
+
+/** Base URL for the CORE v3 API (overridable in tests). */
+export const CORE_API_BASE = new InjectionToken<string>('CORE_API_BASE', {
+  factory: () => environment.apiBase,
+});
+
+/** CORE caps page size at 100 works per request. */
+export const MAX_LIMIT = 100;
+
+@Injectable({ providedIn: 'root' })
+export class CoreApiService {
+  private readonly http = inject(HttpClient);
+  private readonly base = inject(CORE_API_BASE);
+
+  /** Simple in-memory cache so repeated queries don't burn the API rate limit. */
+  private readonly cache = new Map<string, CoreSearchResponse>();
+
+  searchWorks({ query, limit, offset }: SearchParams): Observable<CoreSearchResponse> {
+    const safeLimit = Math.min(Math.max(Math.trunc(limit) || 1, 1), MAX_LIMIT);
+    const params = new HttpParams()
+      .set('q', query.trim())
+      .set('limit', safeLimit)
+      .set('offset', Math.max(0, Math.trunc(offset) || 0));
+
+    const key = params.toString();
+    const cached = this.cache.get(key);
+    if (cached) return of(cached);
+
+    return this.http.get<Partial<CoreSearchResponse>>(`${this.base}/search/works`, { params }).pipe(
+      map((res) => normalizeResponse(res, safeLimit, offset)),
+      tap((res) => this.cache.set(key, res)),
+      catchError((err: HttpErrorResponse) => throwError(() => new Error(describeError(err)))),
+    );
+  }
+}
+
+function normalizeResponse(res: Partial<CoreSearchResponse>, limit: number, offset: number): CoreSearchResponse {
+  const results = (res?.results ?? []).filter((w): w is CoreWork => !!w && w.id != null);
+  return {
+    totalHits: res?.totalHits ?? results.length,
+    limit: res?.limit ?? limit,
+    offset: res?.offset ?? offset,
+    results,
+    scrollId: res?.scrollId,
+  };
+}
+
+/** Turn HTTP failures into a message a person can act on. */
+export function describeError(err: HttpErrorResponse): string {
+  const apiMsg = typeof err.error === 'object' && err.error?.message ? ` (${err.error.message})` : '';
+  switch (err.status) {
+    case 0:
+      return 'Could not reach the CORE API. Check your connection and try again.';
+    case 400:
+      return `CORE could not understand that query${apiMsg}. Check brackets, quotes and AND/OR/NOT operators.`;
+    case 401:
+    case 403:
+      return `The CORE API rejected the request${apiMsg}. If you set an API key, check that it is valid.`;
+    case 429:
+      return 'CORE rate limit reached. Wait a moment, or add a free CORE API key in Settings for higher limits.';
+    default:
+      return err.status >= 500
+        ? `CORE is having trouble right now (HTTP ${err.status}). Please try again shortly.`
+        : `Request failed (HTTP ${err.status})${apiMsg}.`;
+  }
+}
