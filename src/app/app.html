@@ -1,23 +1,88 @@
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">◎</span>
+    <div>
+      <h1>CORE Paper Explorer</h1>
+      <p class="tagline">Search millions of open-access research papers</p>
+    </div>
+  </div>
+</header>
+
 <main class="shell">
-  <h1>CORE Paper Explorer</h1>
-  <form (ngSubmit)="submit()" class="search">
-    <input name="q" [(ngModel)]="draft" placeholder="Search research papers, e.g. drone" aria-label="Search query" />
-    <button type="submit" [disabled]="store.loading()">Search</button>
+  <form class="search-panel" (ngSubmit)="submit()" role="search">
+    <div class="query-row">
+      <label class="visually-hidden" for="q">Search query</label>
+      <input
+        id="q"
+        name="q"
+        class="query"
+        [(ngModel)]="draft"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder='Try (drone AND (package OR delivery))'
+      />
+      <button type="submit" class="primary" [disabled]="store.loading() || !draft.trim()">Search</button>
+    </div>
+
+    <div class="options-row">
+      <label class="limit">
+        Papers per page
+        <input
+          type="number"
+          name="limit"
+          min="1"
+          [max]="maxLimit"
+          [ngModel]="store.limit()"
+          (ngModelChange)="onLimitChange($event)"
+          [ngModelOptions]="{ updateOn: 'blur' }"
+        />
+      </label>
+      <div class="presets" role="group" aria-label="Quick page sizes">
+        @for (n of limitPresets; track n) {
+          <button type="button" class="preset" [class.active]="store.limit() === n" (click)="onLimitChange(n)">{{ n }}</button>
+        }
+      </div>
+    </div>
   </form>
 
-  @if (store.loading()) {
-    <p>Loading…</p>
-  } @else if (store.error(); as err) {
-    <p class="error" role="alert">{{ err }}</p>
-  } @else if (store.hasSearched()) {
-    <p>{{ store.totalHits() }} matching papers — showing {{ store.count() }}</p>
-    <ul>
-      @for (w of store.results(); track w.id) {
-        <li>
-          <strong>{{ w.title || 'Untitled' }}</strong>
-          @if (w.yearPublished) { ({{ w.yearPublished }}) }
-        </li>
+  <section class="results" aria-live="polite">
+    @if (store.loading()) {
+      @for (i of [1, 2, 3]; track i) {
+        <div class="skeleton"></div>
       }
-    </ul>
-  }
+    } @else if (store.error(); as err) {
+      <div class="alert" role="alert">{{ err }}</div>
+    } @else if (store.hasSearched()) {
+      <div class="summary">
+        <span><strong>{{ store.totalHits() | number }}</strong> papers match <code>{{ store.query() }}</code></span>
+        @if (store.count()) {
+          <span class="muted">showing {{ store.offset() + 1 | number }}–{{ store.offset() + store.count() | number }}</span>
+        }
+      </div>
+
+      @for (w of store.results(); track w.id) {
+        <app-paper-card [work]="w" />
+      } @empty {
+        <div class="empty">No papers found. Try broader terms or fewer AND conditions.</div>
+      }
+
+      @if (store.pageCount() > 1) {
+        <nav class="pager" aria-label="Pagination">
+          <button type="button" (click)="store.goToPage(store.page() - 1)" [disabled]="store.page() <= 1">← Previous</button>
+          <span>Page {{ store.page() | number }} of {{ store.pageCount() | number }}</span>
+          <button type="button" (click)="store.goToPage(store.page() + 1)" [disabled]="store.page() >= store.pageCount()">Next →</button>
+        </nav>
+      }
+    } @else {
+      <div class="welcome">
+        <h2>Find research papers</h2>
+        <p>Search the CORE open-access index. Try an example:</p>
+        <div class="examples">
+          <button type="button" (click)="example('drone')">drone</button>
+          <button type="button" (click)="example('(drone AND (package OR delivery))')">(drone AND (package OR delivery))</button>
+          <button type="button" (click)="example('title:&quot;machine learning&quot; AND yearPublished>2020')">title:"machine learning" AND yearPublished&gt;2020</button>
+        </div>
+      </div>
+    }
+  </section>
 </main>
