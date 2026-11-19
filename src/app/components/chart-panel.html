@@ -1,0 +1,74 @@
+<section class="panel" aria-labelledby="chart-title">
+  <header>
+    <h2 id="chart-title">Results overview</h2>
+    <select aria-label="Chart dimension" [value]="store.chartDimension()" (change)="setDimension($any($event.target).value)">
+      @for (d of dimensions; track d.id) {
+        <option [value]="d.id">{{ d.label }}</option>
+      }
+    </select>
+  </header>
+
+  @if (!store.hasSearched() || store.error()) {
+    <div class="blank">
+      <svg viewBox="0 0 120 60" aria-hidden="true"><rect x="8" y="34" width="14" height="22" rx="3" /><rect x="30" y="20" width="14" height="36" rx="3" /><rect x="52" y="28" width="14" height="28" rx="3" /><rect x="74" y="10" width="14" height="46" rx="3" /><rect x="96" y="24" width="14" height="32" rx="3" /></svg>
+      <p>Run a search to see how the matching papers break down.</p>
+    </div>
+  } @else {
+    <p class="scope">
+      {{ dimensionLabel() }} across
+      <strong>{{ store.chartWorks().length | number }}</strong>
+      {{ store.chartSource() === 'sample' ? 'sampled' : 'loaded' }} papers
+      @if (store.filterActive()) { matching your filter }
+      @if (store.totalHits() > store.chartWorks().length) {
+        <span class="muted">(of {{ store.totalHits() | number }} total matches)</span>
+      }
+    </p>
+
+    @if (hasData()) {
+      <app-bar-chart
+        [data]="store.chart().data"
+        [orientation]="store.chart().orientation"
+        [ariaLabel]="dimensionLabel() + ' of matching papers'"
+        (select)="onSelect($event)"
+      />
+    } @else {
+      <div class="blank small"><p>No {{ dimensionLabel().toLowerCase() }} data for these papers.</p></div>
+    }
+
+    @if (store.chart().missing) {
+      <p class="note">{{ store.chart().missing | number }} papers have no {{ dimensionLabel().toLowerCase() }} recorded.</p>
+    }
+
+    <div class="actions">
+      @if (store.sampleLoading()) {
+        <span class="loading">Loading {{ store.sample().length | number }} / {{ sampleSize | number }} papers…</span>
+      } @else if (canSample() && store.chartSource() === 'page') {
+        <button type="button" (click)="store.loadSample(sampleSize)">
+          Analyse up to {{ sampleSize | number }} matches
+        </button>
+      } @else if (store.chartSource() === 'sample') {
+        <button type="button" (click)="store.chartSource.set('page')">Back to this page only</button>
+      }
+      @if (hasData()) {
+        <button type="button" class="ghost" (click)="showTable.set(!showTable())" [attr.aria-expanded]="showTable()">
+          {{ showTable() ? 'Hide table' : 'Show as table' }}
+        </button>
+      }
+    </div>
+    @if (store.sampleError(); as se) {
+      <p class="err" role="alert">{{ se }}</p>
+    }
+
+    @if (showTable() && hasData()) {
+      <table>
+        <thead><tr><th scope="col">{{ dimensionLabel() }}</th><th scope="col">Papers</th></tr></thead>
+        <tbody>
+          @for (d of store.chart().data; track d.key) {
+            <tr><td>{{ d.label }}</td><td>{{ d.value | number }}</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+    <p class="hint">Tip: click a bar to filter the results to it.</p>
+  }
+</section>

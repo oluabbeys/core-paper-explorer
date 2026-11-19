@@ -1,6 +1,7 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ChartPanel } from './components/chart-panel';
 import { PaperCard } from './components/paper-card';
 import { SyntaxHelp } from './components/syntax-help';
 import { validateQuery } from './core/boolean-query';
@@ -9,7 +10,7 @@ import { SearchStore } from './core/search.store';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, DecimalPipe, PaperCard, SyntaxHelp],
+  imports: [FormsModule, DecimalPipe, PaperCard, SyntaxHelp, ChartPanel],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

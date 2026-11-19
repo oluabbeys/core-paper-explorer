@@ -1,0 +1,63 @@
+@if (orientation() === 'vertical') {
+  <div class="vchart">
+    <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" role="img" [attr.aria-label]="ariaLabel()">
+      @for (t of ticks(); track t) {
+        <line class="grid" [attr.x1]="M.left" [attr.x2]="W - M.right" [attr.y1]="y(t)" [attr.y2]="y(t)" />
+        <text class="tick" [attr.x]="M.left - 6" [attr.y]="y(t)" text-anchor="end" dominant-baseline="middle">{{ t | number }}</text>
+      }
+      @for (b of bars(); track b.d.key) {
+        <g
+          class="band"
+          [class.active]="hovered()?.d?.key === b.d.key"
+          [class.clickable]="!!b.d.filter && b.d.value > 0"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="b.d.label + ': ' + b.d.value + ' ' + unit()"
+          (mouseenter)="hovered.set(b)"
+          (mouseleave)="hovered.set(null)"
+          (focus)="hovered.set(b)"
+          (blur)="hovered.set(null)"
+          (click)="choose(b.d)"
+          (keydown.enter)="choose(b.d)"
+        >
+          <!-- Hit target spans the full plot height so thin/zero bars are still easy to hover. -->
+          <rect class="hit" [attr.x]="b.x - 1" [attr.y]="M.top" [attr.width]="b.w + 2" [attr.height]="plotH" />
+          <path class="bar" [attr.d]="b.path" />
+          @if (b.showLabel) {
+            <text class="xlabel" [attr.x]="b.x + b.w / 2" [attr.y]="H - 8" text-anchor="middle">{{ b.d.label }}</text>
+          }
+        </g>
+      }
+      <line class="axis" [attr.x1]="M.left" [attr.x2]="W - M.right" [attr.y1]="M.top + plotH" [attr.y2]="M.top + plotH" />
+    </svg>
+    @if (hovered(); as h) {
+      <div class="tooltip" [style.left.%]="tooltipLeft(h)" [style.top.%]="tooltipTop(h)" role="status">
+        <strong>{{ h.d.label }}</strong>
+        <span>{{ h.d.value | number }} {{ unit() }}</span>
+        @if (h.d.filter && h.d.value > 0) {
+          <em>Click to filter</em>
+        }
+      </div>
+    }
+  </div>
+} @else {
+  <ul class="hchart" [attr.aria-label]="ariaLabel()">
+    @for (d of data(); track d.key) {
+      <li>
+        <button
+          type="button"
+          class="row"
+          [disabled]="!d.filter"
+          (click)="choose(d)"
+          [title]="d.filter ? 'Filter results to ' + d.label : d.label"
+        >
+          <span class="label">{{ d.label }}</span>
+          <span class="track">
+            <span class="fill" [style.width.%]="pct(d.value)"></span>
+          </span>
+          <span class="value">{{ d.value | number }}</span>
+        </button>
+      </li>
+    }
+  </ul>
+}
