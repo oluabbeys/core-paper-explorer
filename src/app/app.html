@@ -16,12 +16,24 @@
         id="q"
         name="q"
         class="query"
-        [(ngModel)]="draft"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+        [attr.aria-invalid]="showError()"
+        aria-describedby="q-feedback"
         autocomplete="off"
         spellcheck="false"
         placeholder='Try (drone AND (package OR delivery))'
       />
-      <button type="submit" class="primary" [disabled]="store.loading() || !draft.trim()">Search</button>
+      <button type="submit" class="primary" [disabled]="store.loading() || !validation().valid">Search</button>
+    </div>
+
+    <div id="q-feedback" class="feedback" aria-live="polite">
+      @if (showError()) {
+        <span class="err">⚠ {{ validation().error }}</span>
+      }
+      @for (w of validation().warnings; track w) {
+        <span class="warn">{{ w }}</span>
+      }
     </div>
 
     <div class="options-row">
@@ -43,6 +55,7 @@
         }
       </div>
     </div>
+    <app-syntax-help (use)="draft.set($event)" />
   </form>
 
   <section class="results" aria-live="polite">
@@ -60,10 +73,39 @@
         }
       </div>
 
-      @for (w of store.results(); track w.id) {
-        <app-paper-card [work]="w" />
+      @if (store.count()) {
+        <div class="filter">
+          <label for="filter">Filter within these {{ store.count() }} papers</label>
+          <div class="filter-row">
+            <input
+              id="filter"
+              type="search"
+              placeholder="e.g. (uav OR drone) AND NOT military, year>=2020, author:smith"
+              [ngModel]="store.filter()"
+              (ngModelChange)="store.filter.set($event)"
+              [attr.aria-invalid]="!!store.filterError()"
+              spellcheck="false"
+            />
+            @if (store.filter()) {
+              <button type="button" class="clear" (click)="store.filter.set('')" aria-label="Clear filter">✕</button>
+            }
+          </div>
+          @if (store.filterError(); as fe) {
+            <span class="err">⚠ {{ fe }}</span>
+          } @else if (store.filterActive()) {
+            <span class="muted">{{ store.visibleResults().length }} of {{ store.count() }} loaded papers match</span>
+          }
+        </div>
+      }
+
+      @for (w of store.visibleResults(); track w.id) {
+        <app-paper-card [work]="w" [highlight]="store.highlight()" />
       } @empty {
-        <div class="empty">No papers found. Try broader terms or fewer AND conditions.</div>
+        @if (store.count()) {
+          <div class="empty">No loaded papers match this filter.</div>
+        } @else {
+          <div class="empty">No papers found. Try broader terms or fewer AND conditions.</div>
+        }
       }
 
       @if (store.pageCount() > 1) {

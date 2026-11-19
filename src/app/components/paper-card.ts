@@ -1,15 +1,19 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { HighlightPipe } from '../core/highlight';
 import { CoreWork } from '../core/models';
 import { authorsLabel, cleanText, documentTypeLabel, venueLabel, workLinks, workYear } from '../core/work-utils';
 
 @Component({
   selector: 'app-paper-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [HighlightPipe],
   template: `
     <article class="card">
       <header>
         <h3 class="title">
-          <a [href]="coreUrl()" target="_blank" rel="noopener">{{ title() }}</a>
+          <a [href]="coreUrl()" target="_blank" rel="noopener"
+            >@for (s of title() | highlight: highlight(); track $index) {@if (s.hit) {<mark>{{ s.text }}</mark>} @else {<span>{{ s.text }}</span>}}</a
+          >
         </h3>
         <p class="meta">
           <span class="authors">{{ authors() }}</span>
@@ -23,7 +27,7 @@ import { authorsLabel, cleanText, documentTypeLabel, venueLabel, workLinks, work
       </header>
 
       @if (abstract()) {
-        <p class="abstract" [class.open]="expanded()">{{ abstract() }}</p>
+        <p class="abstract" [class.open]="expanded()">@for (s of abstract() | highlight: highlight(); track $index) {@if (s.hit) {<mark>{{ s.text }}</mark>} @else {<span>{{ s.text }}</span>}}</p>
         @if (abstract().length > 320) {
           <button type="button" class="link-btn" (click)="expanded.set(!expanded())" [attr.aria-expanded]="expanded()">
             {{ expanded() ? 'Show less' : 'Show full abstract' }}
@@ -52,6 +56,7 @@ import { authorsLabel, cleanText, documentTypeLabel, venueLabel, workLinks, work
 })
 export class PaperCard {
   readonly work = input.required<CoreWork>();
+  readonly highlight = input<readonly string[]>([]);
   protected readonly expanded = signal(false);
 
   protected readonly title = computed(() => cleanText(this.work().title) || 'Untitled');

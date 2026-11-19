@@ -25,3 +25,5 @@ footer { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin
 .spacer { flex: 1; }
 .action { font-size: .8rem; color: var(--accent); text-decoration: none; font-weight: 500;
   &:hover { text-decoration: underline; } }
+mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 .1em; }
+@media (prefers-color-scheme: dark) { mark { background: #7c5e10; } }
