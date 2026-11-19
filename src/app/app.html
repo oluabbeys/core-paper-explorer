@@ -5,6 +5,8 @@
       <h1>CORE Paper Explorer</h1>
       <p class="tagline">Search millions of open-access research papers</p>
     </div>
+    <span class="grow"></span>
+    <app-settings-menu />
   </div>
 </header>
 
@@ -13,6 +15,7 @@
     <div class="query-row">
       <label class="visually-hidden" for="q">Search query</label>
       <input
+        #queryInput
         id="q"
         name="q"
         class="query"
@@ -22,7 +25,7 @@
         aria-describedby="q-feedback"
         autocomplete="off"
         spellcheck="false"
-        placeholder="Try (drone AND (package OR delivery))"
+        placeholder="Try (drone AND (package OR delivery))   — press / to focus"
       />
       <button type="submit" class="primary" [disabled]="store.loading() || !validation().valid">
         Search
@@ -64,6 +67,14 @@
         }
       </div>
     </div>
+    @if (settings.recent().length) {
+      <div class="recent" aria-label="Recent searches">
+        <span class="muted">Recent:</span>
+        @for (r of settings.recent(); track r) {
+          <button type="button" (click)="example(r)" [title]="'Search again: ' + r">{{ r }}</button>
+        }
+      </div>
+    }
     <app-syntax-help (use)="draft.set($event)" />
   </form>
 
@@ -87,6 +98,25 @@
                 store.offset() + store.count() | number
               }}</span
             >
+          }
+          @if (store.count()) {
+            <span class="grow"></span>
+            <label class="sort">
+              Sort
+              <select [ngModel]="store.sortOrder()" (ngModelChange)="store.sortOrder.set($event)">
+                @for (o of sortOptions; track o.id) {
+                  <option [ngValue]="o.id">{{ o.label }}</option>
+                }
+              </select>
+            </label>
+            <button
+              type="button"
+              class="export"
+              (click)="exportCsv()"
+              title="Download the papers shown as CSV"
+            >
+              ⬇ CSV
+            </button>
           }
         </div>
 

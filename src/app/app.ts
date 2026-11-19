@@ -1,28 +1,48 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChartPanel } from './components/chart-panel';
 import { PaperCard } from './components/paper-card';
+import { SettingsMenu } from './components/settings-menu';
 import { SyntaxHelp } from './components/syntax-help';
 import { validateQuery } from './core/boolean-query';
 import { MAX_LIMIT } from './core/core-api.service';
-import { SearchStore } from './core/search.store';
+import { downloadText, slugify, toCsv } from './core/export';
+import { SearchStore, SortOrder } from './core/search.store';
+import { SettingsService } from './core/settings.service';
+import { UrlState } from './core/url-state';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, DecimalPipe, PaperCard, SyntaxHelp, ChartPanel],
+  imports: [FormsModule, DecimalPipe, PaperCard, SyntaxHelp, ChartPanel, SettingsMenu],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  host: { '(document:keydown)': 'onKey($event)' },
 })
 export class App {
   protected readonly store = inject(SearchStore);
+  protected readonly settings = inject(SettingsService);
+  private readonly url = inject(UrlState);
+  private readonly queryInput = viewChild<ElementRef<HTMLInputElement>>('queryInput');
+
   protected readonly maxLimit = MAX_LIMIT;
   protected readonly limitPresets = [10, 25, 50, 100];
+  protected readonly sortOptions: { id: SortOrder; label: string }[] = [
+    { id: 'relevance', label: 'Relevance' },
+    { id: 'newest', label: 'Newest first' },
+    { id: 'oldest', label: 'Oldest first' },
+    { id: 'cited', label: 'Most cited' },
+  ];
 
   protected readonly draft = signal('');
   protected readonly validation = computed(() => validateQuery(this.draft()));
   /** Only nag about errors once the user has typed something. */
   protected readonly showError = computed(() => !!this.draft().trim() && !this.validation().valid);
+
+  constructor() {
+    this.draft.set(this.url.restore());
+    this.url.sync();
+  }
 
   protected submit(): void {
     if (!this.validation().valid) return;
@@ -37,5 +57,19 @@ export class App {
   protected example(q: string): void {
     this.draft.set(q);
     this.submit();
+  }
+
+  protected exportCsv(): void {
+    downloadText(`core-${slugify(this.store.query())}.csv`, toCsv(this.store.visibleResults()));
+  }
+
+  /** Press "/" anywhere to jump to the search box. */
+  protected onKey(e: KeyboardEvent): void {
+    const target = e.target as HTMLElement | null;
+    const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+    if (e.key === '/' && !typing) {
+      e.preventDefault();
+      this.queryInput()?.nativeElement.focus();
+    }
   }
 }

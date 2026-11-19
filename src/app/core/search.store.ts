@@ -5,6 +5,16 @@ import { CoreApiService, MAX_LIMIT } from './core-api.service';
 import { evaluate, highlightTerms, tryParse, validateQuery } from './boolean-query';
 import { ChartDimension, aggregate } from './chart-data';
 import { CoreSearchResponse, CoreWork, SearchParams } from './models';
+import { SettingsService } from './settings.service';
+import { workYear } from './work-utils';
+
+export type SortOrder = 'relevance' | 'newest' | 'oldest' | 'cited';
+
+const SORTERS: Record<Exclude<SortOrder, 'relevance'>, (a: CoreWork, b: CoreWork) => number> = {
+  newest: (a, b) => (workYear(b) ?? -Infinity) - (workYear(a) ?? -Infinity),
+  oldest: (a, b) => (workYear(a) ?? Infinity) - (workYear(b) ?? Infinity),
+  cited: (a, b) => (b.citationCount ?? 0) - (a.citationCount ?? 0),
+};
 
 type Outcome = { ok: true; res: CoreSearchResponse; params: SearchParams } | { ok: false; error: string };
 
@@ -15,6 +25,7 @@ export class SearchStore {
   private readonly requests$ = new Subject<SearchParams>();
   private readonly cancelSample$ = new Subject<void>();
   private readonly destroyRef = inject(DestroyRef);
+  private readonly settings = inject(SettingsService);
 
   readonly query = signal('');
   readonly limit = signal(10);
@@ -37,9 +48,12 @@ export class SearchStore {
     return v.valid ? null : v.error ?? 'Invalid filter';
   });
   readonly filterActive = computed(() => !!this.filterAst());
+  readonly sortOrder = signal<SortOrder>('relevance');
   readonly visibleResults = computed(() => {
     const ast = this.filterAst();
-    return ast ? this.results().filter((w) => evaluate(ast, w)) : this.results();
+    const list = ast ? this.results().filter((w) => evaluate(ast, w)) : [...this.results()];
+    const order = this.sortOrder();
+    return order === 'relevance' ? list : list.sort(SORTERS[order]);
   });
   // ------------------------------------------------------------- chart
   readonly chartDimension = signal<ChartDimension>('year');
@@ -92,17 +106,18 @@ export class SearchStore {
         this.lastQuery = outcome.params.query;
         this.offset.set(outcome.params.offset);
         this.results.set(outcome.res.results);
+        this.settings.remember(outcome.params.query);
         this.totalHits.set(outcome.res.totalHits);
       });
   }
 
   private lastQuery = '';
 
-  search(query = this.query()): void {
+  search(query = this.query(), offset = 0): void {
     const q = query.trim();
     if (!q) return;
     this.query.set(q);
-    this.requests$.next({ query: q, limit: this.limit(), offset: 0 });
+    this.requests$.next({ query: q, limit: this.limit(), offset: Math.max(0, offset) });
   }
 
   setLimit(value: number): void {
