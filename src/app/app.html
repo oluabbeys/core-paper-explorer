@@ -1,10 +1,12 @@
 <header class="topbar">
   <div class="brand">
-    <span class="logo" aria-hidden="true">◎</span>
-    <div>
-      <h1>CORE Paper Explorer</h1>
-      <p class="tagline">Search millions of open-access research papers</p>
-    </div>
+    <a class="home" href="./" (click)="goHome($event)" aria-label="CORE Paper Explorer home">
+      <span class="logo" aria-hidden="true">◎</span>
+      <div>
+        <h1>CORE Paper Explorer</h1>
+        <p class="tagline">Search millions of open-access research papers</p>
+      </div>
+    </a>
     <span class="grow"></span>
     <app-settings-menu />
   </div>

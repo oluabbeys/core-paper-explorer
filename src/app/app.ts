@@ -60,6 +60,17 @@ export class App {
     this.submit();
   }
 
+  /** Brand link: return to the start screen without a full page reload. */
+  protected goHome(e: MouseEvent): void {
+    // Let modified clicks (new tab/window) behave like a normal link.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    this.store.reset();
+    this.draft.set('');
+    history.pushState(null, '', location.pathname);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   protected exportCsv(): void {
     downloadText(`core-${slugify(this.store.query())}.csv`, toCsv(this.store.visibleResults()));
   }

@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, catchError, concatMap, from, of, reduce, switchMap, takeUntil, tap } from 'rxjs';
+import { EMPTY, Subject, catchError, concatMap, from, of, reduce, switchMap, takeUntil, tap } from 'rxjs';
 import { CoreApiService, MAX_LIMIT } from './core-api.service';
 import { evaluate, highlightTerms, tryParse, validateQuery } from './boolean-query';
 import { ChartDimension, aggregate } from './chart-data';
@@ -87,11 +87,14 @@ export class SearchStore {
           this.error.set(null);
         }),
         // switchMap cancels a slower in-flight request if the user searches again.
+        // An empty query is a "reset" signal: it cancels any in-flight request.
         switchMap((params) =>
-          this.api.searchWorks(params).pipe(
-            switchMap((res) => of<Outcome>({ ok: true, res, params })),
-            catchError((e: Error) => of<Outcome>({ ok: false, error: e.message })),
-          ),
+          !params.query
+            ? EMPTY
+            : this.api.searchWorks(params).pipe(
+                switchMap((res) => of<Outcome>({ ok: true, res, params })),
+                catchError((e: Error) => of<Outcome>({ ok: false, error: e.message })),
+              ),
         ),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -167,6 +170,22 @@ export class SearchStore {
     this.sampleLoading.set(false);
     this.sampleError.set(null);
     this.chartSource.set('page');
+  }
+
+  /** Back to the start screen (cached API responses are kept). */
+  reset(): void {
+    this.requests$.next({ query: '', limit: this.limit(), offset: 0 });
+    this.resetSample();
+    this.query.set('');
+    this.filter.set('');
+    this.sortOrder.set('relevance');
+    this.results.set([]);
+    this.totalHits.set(0);
+    this.offset.set(0);
+    this.error.set(null);
+    this.loading.set(false);
+    this.hasSearched.set(false);
+    this.lastQuery = '';
   }
 
   /** Append a clause to the local filter (used when a chart bar is clicked). */
