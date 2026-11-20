@@ -1,5 +1,7 @@
 # CORE Paper Explorer
 
+[![CI](https://github.com/oluabbeys/core-paper-explorer/actions/workflows/ci.yml/badge.svg)](https://github.com/oluabbeys/core-paper-explorer/actions/workflows/ci.yml)
+
 An Angular app for searching open-access research papers from the [CORE API v3](https://api.core.ac.uk/docs/v3). You can run boolean keyword searches, choose how many papers come back, filter what's loaded, and see how the matching papers break down in an interactive chart.
 
 Built with **Angular 22** (standalone components, signals, zoneless change detection, the new control flow). The only runtime dependencies are Angular and RxJS. The chart is hand-written SVG, with no chart library.
@@ -29,9 +31,19 @@ During development, the dev server forwards `/v3/*` to `https://api.core.ac.uk` 
 | `npm run build` | Makes a production build in `dist/core-paper-explorer/browser` |
 | `npm run watch` | Rebuilds in development mode whenever a file changes |
 
-### Production build note
+### Deploying
 
-The production build calls `https://api.core.ac.uk/v3` directly (`src/environments/environment.ts`). If your host or the API blocks cross-origin requests, put the static build behind a reverse proxy that forwards `/v3` to `https://api.core.ac.uk`, and set `apiBase: '/v3'` in `environment.ts`.
+CORE's API doesn't send CORS headers, so browsers block calls to it from other websites. Because of that, the production build sends requests to `/v3/...` on its own domain, and the host forwards them to `https://api.core.ac.uk/v3/...`. Ready-made configs are included:
+
+- **Vercel**: import the GitHub repo at vercel.com/new. `vercel.json` already sets the build command, the output folder and the `/v3` rewrite. No other settings are needed.
+- **Netlify**: "Add new site → Import from Git". `netlify.toml` already sets the build, the `/v3` proxy and the single-page-app fallback.
+- **Any other host or nginx**: serve `dist/core-paper-explorer/browser` and proxy `/v3/` to `https://api.core.ac.uk/v3/`, for example `location /v3/ { proxy_pass https://api.core.ac.uk/v3/; proxy_set_header Host api.core.ac.uk; proxy_ssl_server_name on; }`.
+
+GitHub Pages can't proxy requests, so it can't host this app without an extra CORS proxy.
+
+### Continuous integration
+
+On every push to `main` and on every pull request, `.github/workflows/ci.yml` installs dependencies with `npm ci`, runs the unit tests, makes a production build and uploads the build as an artifact. The badge at the top of this README shows the current status.
 
 ### CORE API key (optional but recommended)
 
@@ -70,7 +82,8 @@ CORE works without a key, but anonymous requests are heavily rate-limited. To ra
     - clear messages for 400 (bad query), 401/403 (bad key), 429 (rate limited) and 5xx errors
 14. **Polish:** light and dark themes that follow the OS setting, loading skeletons, a responsive layout (the sidebar stacks on small screens), and **/** to focus the search box from anywhere.
 15. **Reading list.** Star (☆) any paper to save it. The list survives reloads and new searches, and can be exported as **BibTeX** (download or copy to clipboard, for Zotero, Mendeley, LaTeX and similar) or CSV. BibTeX entries get typed (`@article`, `@phdthesis`, `@misc`), unique citation keys (`garcia2021drone`) and escaped special characters.
-16. **Unit tests** cover the parser and evaluator, highlighting, chart aggregation, the API service (params, clamping, caching, errors), settings and the auth interceptor, CSV and BibTeX export, and the reading list.
+16. **Continuous integration and one-click deployment.** GitHub Actions runs the tests and a production build on every push, and the repo includes Vercel and Netlify configs that proxy the API so a hosted copy works despite CORS.
+17. **Unit tests** cover the parser and evaluator, highlighting, chart aggregation, the API service (params, clamping, caching, errors), settings and the auth interceptor, CSV and BibTeX export, and the reading list.
 
 ---
 
@@ -120,4 +133,4 @@ src/app/
 
 - **Where the chart data comes from.** The chart aggregates every loaded paper that matches the query and any active filter. CORE has no facet or aggregation endpoint in its public search API, so the chart works from the current page by default. "Analyse up to 500 matches" gives a much larger sample, and the panel always shows how many papers the chart is based on compared with the total number of matches.
 - **Two levels of search.** The main bar searches CORE's whole index on the server. The filter refines what has already been loaded, instantly and without spending API calls. Both use the same syntax, so you only need to learn it once.
-- **Commit history.** Each commit builds on the previous one and leaves the app in a working state: scaffold → API + basic search → cards, page size and pagination → boolean validation and filter → chart → extras → docs.
+- **Commit history.** Each commit builds on the previous one and leaves the app in a working state: scaffold → API + basic search → cards, page size and pagination → boolean validation and filter → chart → extras → docs → reading list → CI/deployment.

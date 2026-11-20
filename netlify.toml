@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = "dist/core-paper-explorer/browser"
+
+# Forward API calls to CORE server-side (CORE does not send CORS headers).
+[[redirects]]
+  from = "/v3/*"
+  to = "https://api.core.ac.uk/v3/:splat"
+  status = 200
+  force = true
+
+# Single-page app fallback.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

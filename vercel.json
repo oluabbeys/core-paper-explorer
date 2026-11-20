@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/core-paper-explorer/browser",
+  "rewrites": [
+    { "source": "/v3/:path*", "destination": "https://api.core.ac.uk/v3/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
