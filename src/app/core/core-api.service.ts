@@ -31,7 +31,9 @@ export class CoreApiService {
     const cached = this.cache.get(key);
     if (cached) return of(cached);
 
-    return this.http.get<Partial<CoreSearchResponse>>(`${this.base}/search/works`, { params }).pipe(
+    // Note the trailing slash: CORE redirects /search/works to /search/works/ on
+    // its own domain, and that cross-origin redirect is blocked by CORS.
+    return this.http.get<Partial<CoreSearchResponse>>(`${this.base}/search/works/`, { params }).pipe(
       map((res) => normalizeResponse(res, safeLimit, offset)),
       tap((res) => this.cache.set(key, res)),
       catchError((err: HttpErrorResponse) => {

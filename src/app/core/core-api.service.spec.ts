@@ -20,7 +20,7 @@ describe('CoreApiService', () => {
   it('sends q/limit/offset and normalises the response', () => {
     let total = -1;
     api.searchWorks({ query: ' (drone) ', limit: 25, offset: 0 }).subscribe((r) => (total = r.totalHits));
-    const req = http.expectOne((r) => r.url === '/api/search/works');
+    const req = http.expectOne((r) => r.url === '/api/search/works/');
     expect(req.request.params.get('q')).toBe('(drone)');
     expect(req.request.params.get('limit')).toBe('25');
     req.flush({ totalHits: 42, limit: 25, offset: 0, results: [{ id: 1, title: 'A' }, null] });
@@ -29,7 +29,7 @@ describe('CoreApiService', () => {
 
   it('clamps limit to the CORE maximum of 100', () => {
     api.searchWorks({ query: 'x', limit: 5000, offset: 0 }).subscribe();
-    const req = http.expectOne((r) => r.url === '/api/search/works');
+    const req = http.expectOne((r) => r.url === '/api/search/works/');
     expect(req.request.params.get('limit')).toBe('100');
     req.flush({ totalHits: 0, results: [] });
   });
