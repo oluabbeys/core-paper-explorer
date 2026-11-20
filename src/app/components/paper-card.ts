@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { HighlightPipe } from '../core/highlight';
 import { CoreWork } from '../core/models';
+import { ReadingListService } from '../core/reading-list.service';
 import { authorsLabel, cleanText, documentTypeLabel, venueLabel, workLinks, workYear } from '../core/work-utils';
 
 @Component({
@@ -10,6 +11,15 @@ import { authorsLabel, cleanText, documentTypeLabel, venueLabel, workLinks, work
   template: `
     <article class="card">
       <header>
+        <button
+          type="button"
+          class="star"
+          [class.on]="saved()"
+          (click)="readingList.toggle(work())"
+          [attr.aria-pressed]="saved()"
+          [attr.aria-label]="saved() ? 'Remove from reading list' : 'Save to reading list'"
+          [title]="saved() ? 'Remove from reading list' : 'Save to reading list'"
+        >{{ saved() ? '★' : '☆' }}</button>
         <h3 class="title">
           <a [href]="coreUrl()" target="_blank" rel="noopener"
             >@for (s of title() | highlight: highlight(); track $index) {@if (s.hit) {<mark>{{ s.text }}</mark>} @else {<span>{{ s.text }}</span>}}</a
@@ -58,6 +68,8 @@ export class PaperCard {
   readonly work = input.required<CoreWork>();
   readonly highlight = input<readonly string[]>([]);
   protected readonly expanded = signal(false);
+  protected readonly readingList = inject(ReadingListService);
+  protected readonly saved = computed(() => this.readingList.has(this.work().id));
 
   protected readonly title = computed(() => cleanText(this.work().title) || 'Untitled');
   protected readonly authors = computed(() => authorsLabel(this.work()));

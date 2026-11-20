@@ -3,6 +3,7 @@ import { Component, ElementRef, computed, inject, signal, viewChild } from '@ang
 import { FormsModule } from '@angular/forms';
 import { ChartPanel } from './components/chart-panel';
 import { PaperCard } from './components/paper-card';
+import { ReadingListPanel } from './components/reading-list-panel';
 import { SettingsMenu } from './components/settings-menu';
 import { SyntaxHelp } from './components/syntax-help';
 import { validateQuery } from './core/boolean-query';
@@ -14,7 +15,7 @@ import { UrlState } from './core/url-state';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, DecimalPipe, PaperCard, SyntaxHelp, ChartPanel, SettingsMenu],
+  imports: [FormsModule, DecimalPipe, PaperCard, SyntaxHelp, ChartPanel, SettingsMenu, ReadingListPanel],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   host: { '(document:keydown)': 'onKey($event)' },

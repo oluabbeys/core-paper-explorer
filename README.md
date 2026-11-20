@@ -25,7 +25,7 @@ During development, the dev server forwards `/v3/*` to `https://api.core.ac.uk` 
 
 | Command | What it does |
 | --- | --- |
-| `npm test` | Runs the unit tests once (Vitest via `ng test`, 30 tests) |
+| `npm test` | Runs the unit tests once (Vitest via `ng test`) |
 | `npm run build` | Makes a production build in `dist/core-paper-explorer/browser` |
 | `npm run watch` | Rebuilds in development mode whenever a file changes |
 
@@ -69,7 +69,8 @@ CORE works without a key, but anonymous requests are heavily rate-limited. To ra
     - `switchMap` cancels slower requests that have been replaced by a newer search
     - clear messages for 400 (bad query), 401/403 (bad key), 429 (rate limited) and 5xx errors
 14. **Polish:** light and dark themes that follow the OS setting, loading skeletons, a responsive layout (the sidebar stacks on small screens), and **/** to focus the search box from anywhere.
-15. **Unit tests** cover the parser and evaluator, highlighting, chart aggregation, the API service (params, clamping, caching, errors), settings and the auth interceptor, and CSV export.
+15. **Reading list.** Star (☆) any paper to save it. The list survives reloads and new searches, and can be exported as **BibTeX** (download or copy to clipboard, for Zotero, Mendeley, LaTeX and similar) or CSV. BibTeX entries get typed (`@article`, `@phdthesis`, `@misc`), unique citation keys (`garcia2021drone`) and escaped special characters.
+16. **Unit tests** cover the parser and evaluator, highlighting, chart aggregation, the API service (params, clamping, caching, errors), settings and the auth interceptor, CSV and BibTeX export, and the reading list.
 
 ---
 
@@ -110,6 +111,8 @@ src/app/
     ├── settings.service.ts   # localStorage prefs + auth interceptor
     ├── url-state.ts          # URL ⇄ state sync
     ├── export.ts             # CSV export
+    ├── bibtex.ts             # BibTeX export
+    ├── reading-list.service.ts # Saved papers (localStorage)
     └── work-utils.ts         # Cleaning/formatting of sparse CORE records
 ```
 

@@ -27,3 +27,9 @@ footer { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin
   &:hover { text-decoration: underline; } }
 mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 .1em; }
 @media (prefers-color-scheme: dark) { mark { background: #7c5e10; } }
+
+header { position: relative; padding-right: 2rem; }
+.star { position: absolute; top: -.2rem; right: -.4rem; border: 0; background: none; cursor: pointer; font-size: 1.3rem; line-height: 1;
+  color: var(--muted); padding: .2rem; border-radius: 6px; transition: color .15s, transform .15s;
+  &:hover { color: #d97706; transform: scale(1.1); }
+  &.on { color: #f59e0b; } }
