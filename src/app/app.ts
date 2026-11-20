@@ -8,6 +8,7 @@ import { SettingsMenu } from './components/settings-menu';
 import { SyntaxHelp } from './components/syntax-help';
 import { validateQuery } from './core/boolean-query';
 import { MAX_LIMIT } from './core/core-api.service';
+import { pageItems } from './core/pagination';
 import { downloadText, slugify, toCsv } from './core/export';
 import { SearchStore, SortOrder } from './core/search.store';
 import { SettingsService } from './core/settings.service';
@@ -35,6 +36,8 @@ export class App {
     { id: 'cited', label: 'Most cited' },
   ];
 
+  protected readonly pages = computed(() => pageItems(this.store.page(), this.store.pageCount()));
+
   protected readonly draft = signal('');
   protected readonly validation = computed(() => validateQuery(this.draft()));
   /** Only nag about errors once the user has typed something. */
@@ -58,6 +61,12 @@ export class App {
   protected example(q: string): void {
     this.draft.set(q);
     this.submit();
+  }
+
+  protected goTo(page: number): void {
+    if (page === this.store.page()) return;
+    this.store.goToPage(page);
+    document.querySelector('.results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   /** Brand link: return to the start screen without a full page reload. */

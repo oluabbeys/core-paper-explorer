@@ -171,15 +171,36 @@
           <nav class="pager" aria-label="Pagination">
             <button
               type="button"
-              (click)="store.goToPage(store.page() - 1)"
+              class="step"
+              (click)="goTo(store.page() - 1)"
               [disabled]="store.page() <= 1"
             >
               ← Previous
             </button>
-            <span>Page {{ store.page() | number }} of {{ store.pageCount() | number }}</span>
+            <ol>
+              @for (item of pages(); track $index) {
+                <li>
+                  @if (item === 'gap') {
+                    <span class="gap" aria-hidden="true">…</span>
+                  } @else {
+                    <button
+                      type="button"
+                      class="num"
+                      [class.current]="item === store.page()"
+                      [attr.aria-current]="item === store.page() ? 'page' : null"
+                      [attr.aria-label]="'Page ' + item"
+                      (click)="goTo(item)"
+                    >
+                      {{ item | number }}
+                    </button>
+                  }
+                </li>
+              }
+            </ol>
             <button
               type="button"
-              (click)="store.goToPage(store.page() + 1)"
+              class="step"
+              (click)="goTo(store.page() + 1)"
               [disabled]="store.page() >= store.pageCount()"
             >
               Next →
