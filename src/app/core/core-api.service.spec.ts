@@ -47,4 +47,15 @@ describe('CoreApiService', () => {
     http.expectOne(() => true).flush({ message: 'Too many' }, { status: 429, statusText: 'Too Many Requests' });
     expect(msg).toContain('rate limit');
   });
+
+  it('includes the reset time from X-RateLimit-Retry-After', () => {
+    let msg = '';
+    api.searchWorks({ query: 'y', limit: 10, offset: 0 }).subscribe({ error: (e: Error) => (msg = e.message) });
+    http.expectOne(() => true).flush('', {
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: { 'X-RateLimit-Retry-After': '2026-11-20T03:09:06+0000' },
+    });
+    expect(msg).toMatch(/paused until \d{1,2}:\d{2}/);
+  });
 });

@@ -61,11 +61,22 @@ export function describeError(err: HttpErrorResponse): string {
     case 401:
     case 403:
       return `The CORE API rejected the request${apiMsg}. If you set an API key, check that it is valid.`;
-    case 429:
-      return 'CORE rate limit reached. Wait a moment, or add a free CORE API key in Settings for higher limits.';
+    case 429: {
+      const retry = retryTime(err.headers?.get('x-ratelimit-retry-after'));
+      const when = retry ? ` until ${retry}` : ' for a few minutes';
+      return `CORE's rate limit has been reached, so new searches are paused${when}. Add a free CORE API key under ⚙ Settings for a much higher limit (previous results are still cached).`;
+    }
     default:
       return err.status >= 500
         ? `CORE is having trouble right now (HTTP ${err.status}). Please try again shortly.`
         : `Request failed (HTTP ${err.status})${apiMsg}.`;
   }
+}
+
+/** Format CORE's `X-RateLimit-Retry-After` timestamp as a local time, e.g. "4:09 PM". */
+function retryTime(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  // CORE sends e.g. 2026-11-20T03:09:06+0000; add the colon some parsers need.
+  const d = new Date(raw.replace(/([+-]\d{2})(\d{2})$/, '$1:$2'));
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
