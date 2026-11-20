@@ -2,6 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChartPanel } from './components/chart-panel';
+import { CompareView } from './components/compare-view';
 import { PaperCard } from './components/paper-card';
 import { ReadingListPanel } from './components/reading-list-panel';
 import { SettingsMenu } from './components/settings-menu';
@@ -12,11 +13,13 @@ import { pageItems } from './core/pagination';
 import { downloadText, slugify, toCsv } from './core/export';
 import { SearchStore, SortOrder } from './core/search.store';
 import { SettingsService } from './core/settings.service';
+import { CompareStore } from './core/compare.store';
 import { UrlState } from './core/url-state';
+import { AppView, ViewState } from './core/view.state';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, DecimalPipe, PaperCard, SyntaxHelp, ChartPanel, SettingsMenu, ReadingListPanel],
+  imports: [FormsModule, DecimalPipe, PaperCard, SyntaxHelp, ChartPanel, SettingsMenu, ReadingListPanel, CompareView],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -25,6 +28,8 @@ export class App {
   protected readonly store = inject(SearchStore);
   protected readonly settings = inject(SettingsService);
   private readonly url = inject(UrlState);
+  protected readonly ui = inject(ViewState);
+  private readonly compare = inject(CompareStore);
   private readonly queryInput = viewChild<ElementRef<HTMLInputElement>>('queryInput');
 
   protected readonly maxLimit = MAX_LIMIT;
@@ -63,6 +68,21 @@ export class App {
     this.submit();
   }
 
+  protected setView(view: AppView): void {
+    if (view === 'compare' && !this.compare.draftA() && this.store.query()) {
+      this.compare.draftA.set(this.store.query()); // start from the current search
+    }
+    this.ui.view.set(view);
+    if (view === 'search' && !this.store.hasSearched()) history.replaceState(null, '', location.pathname);
+  }
+
+  /** "Browse these papers" from Compare: run that topic as a normal search. */
+  protected searchFor(q: string): void {
+    this.ui.view.set('search');
+    this.draft.set(q);
+    this.store.search(q);
+  }
+
   protected goTo(page: number): void {
     if (page === this.store.page()) return;
     this.store.goToPage(page);
@@ -75,6 +95,8 @@ export class App {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
     this.store.reset();
+    this.compare.reset();
+    this.ui.view.set('search');
     this.draft.set('');
     history.pushState(null, '', location.pathname);
     window.scrollTo({ top: 0, behavior: 'smooth' });

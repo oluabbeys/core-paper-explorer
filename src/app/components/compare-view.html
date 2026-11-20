@@ -1,0 +1,163 @@
+<section class="compare" aria-labelledby="cmp-title">
+  <header class="intro">
+    <h2 id="cmp-title">Compare two research topics</h2>
+    <p>See which topic has more open-access research and which is growing faster, year by year.</p>
+  </header>
+
+  <form class="topics" (ngSubmit)="submit()">
+    <label class="topic">
+      <span class="tag t0">A</span>
+      <input
+        name="a"
+        [ngModel]="a()"
+        (ngModelChange)="a.set($event)"
+        placeholder="e.g. drone delivery"
+        spellcheck="false"
+        aria-label="Topic A"
+      />
+    </label>
+    <button
+      type="button"
+      class="swap"
+      (click)="swap()"
+      aria-label="Swap topics"
+      title="Swap topics"
+    >
+      ⇄
+    </button>
+    <label class="topic">
+      <span class="tag t1">B</span>
+      <input
+        name="b"
+        [ngModel]="b()"
+        (ngModelChange)="b.set($event)"
+        placeholder="e.g. robot delivery"
+        spellcheck="false"
+        aria-label="Topic B"
+      />
+    </label>
+    <button type="submit" class="primary" [disabled]="!canCompare()">Compare</button>
+  </form>
+  @if (a().trim() && !validA().valid) {
+    <p class="err">Topic A: {{ validA().error }}</p>
+  }
+  @if (b().trim() && !validB().valid) {
+    <p class="err">Topic B: {{ validB().error }}</p>
+  }
+
+  <div class="examples">
+    <span class="muted">Try:</span>
+    @for (e of examples; track e[0]) {
+      <button type="button" (click)="useExample(e)">{{ e[0] }} <em>vs</em> {{ e[1] }}</button>
+    }
+  </div>
+
+  @if (store.loading()) {
+    <div class="skeleton"></div>
+  } @else if (store.error(); as err) {
+    <div class="alert" role="alert">{{ err }}</div>
+  } @else if (store.series(); as s) {
+    <p class="verdict" aria-live="polite">{{ store.summary() }}</p>
+
+    <div class="cards">
+      @for (t of s; track t.query; let i = $index) {
+        <article class="card">
+          <header>
+            <span [class]="'tag t' + i">{{ i === 0 ? 'A' : 'B' }}</span>
+            <h3>{{ t.query }}</h3>
+          </header>
+          <dl>
+            <div>
+              <dt>Matching papers</dt>
+              <dd>{{ t.total | number }}</dd>
+            </div>
+            <div>
+              <dt>{{ store.isExact() ? 'Peak year' : 'Peak (sample)' }}</dt>
+              <dd>{{ t.peakYear ?? '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ store.isExact() ? 'Growth' : 'Trend (sample)' }}</dt>
+              <dd [class.up]="(t.growth ?? 0) > 0" [class.down]="(t.growth ?? 0) < 0">
+                {{ t.growth == null ? '—' : signed(t.growth) }}
+              </dd>
+            </div>
+          </dl>
+          <button type="button" class="link" (click)="searchFor.emit(t.query)">
+            Browse these papers →
+          </button>
+        </article>
+      }
+    </div>
+
+    <article class="chart-card">
+      <header>
+        <h3>
+          {{
+            store.isExact()
+              ? 'Papers published per year'
+              : 'Share of each topic’s top 100 papers by year'
+          }}
+        </h3>
+      </header>
+      <app-line-chart
+        [labels]="labels()"
+        [series]="chartSeries()"
+        [unit]="store.isExact() ? '' : '%'"
+        [ariaLabel]="'Papers per year: ' + s[0].query + ' versus ' + s[1].query"
+      />
+
+      <div class="mode">
+        @if (store.isExact()) {
+          <span class="muted"
+            >Exact counts from CORE for every year. Growth compares the last 5 years with the 5
+            before.</span
+          >
+        } @else if (store.exactLoading()) {
+          <span class="muted"
+            >Fetching exact counts… {{ store.exactDone() }} / {{ store.exactNeeded() }}</span
+          >
+          <progress [value]="store.exactDone()" [max]="store.exactNeeded()"></progress>
+        } @else {
+          <span class="muted">Quick view based on the 100 most relevant papers per topic.</span>
+          <button type="button" (click)="store.loadExact()">
+            Get exact yearly counts ({{ store.exactNeeded() - store.exactDone() }} requests)
+          </button>
+        }
+        <button
+          type="button"
+          class="ghost"
+          (click)="showTable.set(!showTable())"
+          [attr.aria-expanded]="showTable()"
+        >
+          {{ showTable() ? 'Hide table' : 'Show as table' }}
+        </button>
+      </div>
+      @if (store.exactError(); as ee) {
+        <p class="err" role="alert">{{ ee }}</p>
+      }
+
+      @if (showTable()) {
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Year</th>
+              <th scope="col">{{ s[0].query }}</th>
+              <th scope="col">{{ s[1].query }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (y of labels(); track y; let i = $index) {
+              <tr>
+                <td>{{ y }}</td>
+                <td>{{ s[0].values[i] | number }}{{ store.isExact() ? '' : '%' }}</td>
+                <td>{{ s[1].values[i] | number }}{{ store.isExact() ? '' : '%' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </article>
+  } @else {
+    <div class="empty">Enter two topics, or pick an example above, to compare them.</div>
+  }
+</section>

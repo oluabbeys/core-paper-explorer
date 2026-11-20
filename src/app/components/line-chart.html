@@ -1,0 +1,101 @@
+<div class="wrap">
+  <ul class="legend" aria-hidden="true">
+    @for (l of lines(); track l.name; let i = $index) {
+      <li>
+        <svg width="26" height="10"><line [class]="'s' + i" x1="1" x2="25" y1="5" y2="5" /></svg>
+        <span>{{ l.name }}</span>
+      </li>
+    }
+  </ul>
+
+  <svg
+    class="chart"
+    [attr.viewBox]="'0 0 ' + W + ' ' + H"
+    role="img"
+    [attr.aria-label]="ariaLabel()"
+  >
+    @for (t of ticks(); track t) {
+      <line
+        class="grid"
+        [attr.x1]="M.left"
+        [attr.x2]="M.left + plotW"
+        [attr.y1]="y(t)"
+        [attr.y2]="y(t)"
+      />
+      <text
+        class="tick"
+        [attr.x]="M.left - 8"
+        [attr.y]="y(t)"
+        text-anchor="end"
+        dominant-baseline="middle"
+      >
+        {{ fmt(t) }}
+      </text>
+    }
+    @for (label of labels(); track label; let i = $index) {
+      <text class="tick" [attr.x]="x(i)" [attr.y]="H - 8" text-anchor="middle">{{ label }}</text>
+    }
+
+    @if (hover() !== null) {
+      <line
+        class="cross"
+        [attr.x1]="x(hover()!)"
+        [attr.x2]="x(hover()!)"
+        [attr.y1]="M.top"
+        [attr.y2]="M.top + plotH"
+      />
+    }
+
+    @for (l of lines(); track l.name; let i = $index) {
+      <path [class]="'line s' + i" [attr.d]="l.d" />
+      @for (p of l.pts; track $index; let j = $index) {
+        <circle
+          [class]="'dot s' + i"
+          [class.on]="hover() === j"
+          [attr.cx]="p.x"
+          [attr.cy]="p.y"
+          [attr.r]="hover() === j ? 5 : 3.5"
+        />
+      }
+    }
+
+    @for (e of endLabels(); track e.i) {
+      <text
+        [class]="'end t' + e.i"
+        [attr.x]="M.left + plotW + 10"
+        [attr.y]="e.y"
+        dominant-baseline="middle"
+      >
+        {{ e.text }}
+      </text>
+    }
+
+    <!-- Hit targets: one full-height band per year. -->
+    @for (label of labels(); track label; let i = $index) {
+      <rect
+        class="hit"
+        [attr.x]="x(i) - band() / 2"
+        [attr.y]="M.top"
+        [attr.width]="band()"
+        [attr.height]="plotH"
+        tabindex="0"
+        [attr.aria-label]="label"
+        (mouseenter)="hover.set(i)"
+        (focus)="hover.set(i)"
+        (mouseleave)="hover.set(null)"
+        (blur)="hover.set(null)"
+      />
+    }
+  </svg>
+
+  @if (hover() !== null) {
+    <div class="tooltip" role="status" [style.left.%]="tooltipLeft(hover()!)">
+      <strong>{{ labels()[hover()!] }}</strong>
+      @for (l of lines(); track l.name; let i = $index) {
+        <span
+          ><i [class]="'sw s' + i"></i>{{ l.name }}: <b>{{ fmt(l.pts[hover()!].v) }}</b></span
+        >
+      }
+    </div>
+  }
+</div>

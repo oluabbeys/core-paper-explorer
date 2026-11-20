@@ -13,223 +13,248 @@
 </header>
 
 <main class="shell">
-  <form class="search-panel" (ngSubmit)="submit()" role="search">
-    <div class="query-row">
-      <label class="visually-hidden" for="q">Search query</label>
-      <input
-        #queryInput
-        id="q"
-        name="q"
-        class="query"
-        [ngModel]="draft()"
-        (ngModelChange)="draft.set($event)"
-        [attr.aria-invalid]="showError()"
-        aria-describedby="q-feedback"
-        autocomplete="off"
-        spellcheck="false"
-        placeholder="Try (drone AND (package OR delivery))   — press / to focus"
-      />
-      <button type="submit" class="primary" [disabled]="store.loading() || !validation().valid">
-        Search
-      </button>
-    </div>
+  <nav class="tabs" aria-label="Views">
+    <button
+      type="button"
+      [class.active]="ui.view() === 'search'"
+      [attr.aria-current]="ui.view() === 'search' ? 'page' : null"
+      (click)="setView('search')"
+    >
+      Search papers
+    </button>
+    <button
+      type="button"
+      [class.active]="ui.view() === 'compare'"
+      [attr.aria-current]="ui.view() === 'compare' ? 'page' : null"
+      (click)="setView('compare')"
+    >
+      Compare topics <span class="new">New</span>
+    </button>
+  </nav>
 
-    <div id="q-feedback" class="feedback" aria-live="polite">
-      @if (showError()) {
-        <span class="err">⚠ {{ validation().error }}</span>
-      }
-      @for (w of validation().warnings; track w) {
-        <span class="warn">{{ w }}</span>
-      }
-    </div>
-
-    <div class="options-row">
-      <label class="limit">
-        Papers per page
+  @if (ui.view() === 'compare') {
+    <app-compare-view (searchFor)="searchFor($event)" />
+  } @else {
+    <form class="search-panel" (ngSubmit)="submit()" role="search">
+      <div class="query-row">
+        <label class="visually-hidden" for="q">Search query</label>
         <input
-          type="number"
-          name="limit"
-          min="1"
-          [max]="maxLimit"
-          [ngModel]="store.limit()"
-          (ngModelChange)="onLimitChange($event)"
-          [ngModelOptions]="{ updateOn: 'blur' }"
+          #queryInput
+          id="q"
+          name="q"
+          class="query"
+          [ngModel]="draft()"
+          (ngModelChange)="draft.set($event)"
+          [attr.aria-invalid]="showError()"
+          aria-describedby="q-feedback"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Try (drone AND (package OR delivery))   — press / to focus"
         />
-      </label>
-      <div class="presets" role="group" aria-label="Quick page sizes">
-        @for (n of limitPresets; track n) {
-          <button
-            type="button"
-            class="preset"
-            [class.active]="store.limit() === n"
-            (click)="onLimitChange(n)"
-          >
-            {{ n }}
-          </button>
-        }
+        <button type="submit" class="primary" [disabled]="store.loading() || !validation().valid">
+          Search
+        </button>
       </div>
-    </div>
-    @if (settings.recent().length) {
-      <div class="recent" aria-label="Recent searches">
-        <span class="muted">Recent:</span>
-        @for (r of settings.recent(); track r) {
-          <button type="button" (click)="example(r)" [title]="'Search again: ' + r">{{ r }}</button>
-        }
-      </div>
-    }
-    <app-syntax-help (use)="draft.set($event)" />
-  </form>
 
-  <div class="layout">
-    <section class="results" aria-live="polite">
-      @if (store.loading()) {
-        @for (i of [1, 2, 3]; track i) {
-          <div class="skeleton"></div>
+      <div id="q-feedback" class="feedback" aria-live="polite">
+        @if (showError()) {
+          <span class="err">⚠ {{ validation().error }}</span>
         }
-      } @else if (store.error(); as err) {
-        <div class="alert" role="alert">{{ err }}</div>
-      } @else if (store.hasSearched()) {
-        <div class="summary">
-          <span
-            ><strong>{{ store.totalHits() | number }}</strong> papers match
-            <code>{{ store.query() }}</code></span
-          >
-          @if (store.count()) {
-            <span class="muted"
-              >showing {{ store.offset() + 1 | number }}–{{
-                store.offset() + store.count() | number
-              }}</span
-            >
-          }
-          @if (store.count()) {
-            <span class="grow"></span>
-            <label class="sort">
-              Sort
-              <select [ngModel]="store.sortOrder()" (ngModelChange)="store.sortOrder.set($event)">
-                @for (o of sortOptions; track o.id) {
-                  <option [ngValue]="o.id">{{ o.label }}</option>
-                }
-              </select>
-            </label>
+        @for (w of validation().warnings; track w) {
+          <span class="warn">{{ w }}</span>
+        }
+      </div>
+
+      <div class="options-row">
+        <label class="limit">
+          Papers per page
+          <input
+            type="number"
+            name="limit"
+            min="1"
+            [max]="maxLimit"
+            [ngModel]="store.limit()"
+            (ngModelChange)="onLimitChange($event)"
+            [ngModelOptions]="{ updateOn: 'blur' }"
+          />
+        </label>
+        <div class="presets" role="group" aria-label="Quick page sizes">
+          @for (n of limitPresets; track n) {
             <button
               type="button"
-              class="export"
-              (click)="exportCsv()"
-              title="Download the papers shown as CSV"
+              class="preset"
+              [class.active]="store.limit() === n"
+              (click)="onLimitChange(n)"
             >
-              ⬇ CSV
+              {{ n }}
             </button>
           }
         </div>
+      </div>
+      @if (settings.recent().length) {
+        <div class="recent" aria-label="Recent searches">
+          <span class="muted">Recent:</span>
+          @for (r of settings.recent(); track r) {
+            <button type="button" (click)="example(r)" [title]="'Search again: ' + r">
+              {{ r }}
+            </button>
+          }
+        </div>
+      }
+      <app-syntax-help (use)="draft.set($event)" />
+    </form>
 
-        @if (store.count()) {
-          <div class="filter">
-            <label for="filter">Filter within these {{ store.count() }} papers</label>
-            <div class="filter-row">
-              <input
-                id="filter"
-                type="search"
-                placeholder="e.g. (uav OR drone) AND NOT military, year>=2020, author:smith"
-                [ngModel]="store.filter()"
-                (ngModelChange)="store.filter.set($event)"
-                [attr.aria-invalid]="!!store.filterError()"
-                spellcheck="false"
-              />
-              @if (store.filter()) {
-                <button
-                  type="button"
-                  class="clear"
-                  (click)="store.filter.set('')"
-                  aria-label="Clear filter"
-                >
-                  ✕
-                </button>
-              }
-            </div>
-            @if (store.filterError(); as fe) {
-              <span class="err">⚠ {{ fe }}</span>
-            } @else if (store.filterActive()) {
+    <div class="layout">
+      <section class="results" aria-live="polite">
+        @if (store.loading()) {
+          @for (i of [1, 2, 3]; track i) {
+            <div class="skeleton"></div>
+          }
+        } @else if (store.error(); as err) {
+          <div class="alert" role="alert">{{ err }}</div>
+        } @else if (store.hasSearched()) {
+          <div class="summary">
+            <span
+              ><strong>{{ store.totalHits() | number }}</strong> papers match
+              <code>{{ store.query() }}</code></span
+            >
+            @if (store.count()) {
               <span class="muted"
-                >{{ store.visibleResults().length }} of {{ store.count() }} loaded papers
-                match</span
+                >showing {{ store.offset() + 1 | number }}–{{
+                  store.offset() + store.count() | number
+                }}</span
               >
             }
-          </div>
-        }
-
-        @for (w of store.visibleResults(); track w.id) {
-          <app-paper-card [work]="w" [highlight]="store.highlight()" />
-        } @empty {
-          @if (store.count()) {
-            <div class="empty">No loaded papers match this filter.</div>
-          } @else {
-            <div class="empty">No papers found. Try broader terms or fewer AND conditions.</div>
-          }
-        }
-
-        @if (store.pageCount() > 1) {
-          <nav class="pager" aria-label="Pagination">
-            <button
-              type="button"
-              class="step"
-              (click)="goTo(store.page() - 1)"
-              [disabled]="store.page() <= 1"
-            >
-              ← Previous
-            </button>
-            <ol>
-              @for (item of pages(); track $index) {
-                <li>
-                  @if (item === 'gap') {
-                    <span class="gap" aria-hidden="true">…</span>
-                  } @else {
-                    <button
-                      type="button"
-                      class="num"
-                      [class.current]="item === store.page()"
-                      [attr.aria-current]="item === store.page() ? 'page' : null"
-                      [attr.aria-label]="'Page ' + item"
-                      (click)="goTo(item)"
-                    >
-                      {{ item | number }}
-                    </button>
+            @if (store.count()) {
+              <span class="grow"></span>
+              <label class="sort">
+                Sort
+                <select [ngModel]="store.sortOrder()" (ngModelChange)="store.sortOrder.set($event)">
+                  @for (o of sortOptions; track o.id) {
+                    <option [ngValue]="o.id">{{ o.label }}</option>
                   }
-                </li>
-              }
-            </ol>
-            <button
-              type="button"
-              class="step"
-              (click)="goTo(store.page() + 1)"
-              [disabled]="store.page() >= store.pageCount()"
-            >
-              Next →
-            </button>
-          </nav>
-        }
-      } @else {
-        <div class="welcome">
-          <h2>Find research papers</h2>
-          <p>Search the CORE open-access index. Try an example:</p>
-          <div class="examples">
-            <button type="button" (click)="example('drone')">drone</button>
-            <button type="button" (click)="example('(drone AND (package OR delivery))')">
-              (drone AND (package OR delivery))
-            </button>
-            <button
-              type="button"
-              (click)="example('title:&quot;machine learning&quot; AND yearPublished>2020')"
-            >
-              title:"machine learning" AND yearPublished&gt;2020
-            </button>
+                </select>
+              </label>
+              <button
+                type="button"
+                class="export"
+                (click)="exportCsv()"
+                title="Download the papers shown as CSV"
+              >
+                ⬇ CSV
+              </button>
+            }
           </div>
-        </div>
-      }
-    </section>
 
-    <aside class="sidebar">
-      <app-chart-panel />
-      <app-reading-list-panel />
-    </aside>
-  </div>
+          @if (store.count()) {
+            <div class="filter">
+              <label for="filter">Filter within these {{ store.count() }} papers</label>
+              <div class="filter-row">
+                <input
+                  id="filter"
+                  type="search"
+                  placeholder="e.g. (uav OR drone) AND NOT military, year>=2020, author:smith"
+                  [ngModel]="store.filter()"
+                  (ngModelChange)="store.filter.set($event)"
+                  [attr.aria-invalid]="!!store.filterError()"
+                  spellcheck="false"
+                />
+                @if (store.filter()) {
+                  <button
+                    type="button"
+                    class="clear"
+                    (click)="store.filter.set('')"
+                    aria-label="Clear filter"
+                  >
+                    ✕
+                  </button>
+                }
+              </div>
+              @if (store.filterError(); as fe) {
+                <span class="err">⚠ {{ fe }}</span>
+              } @else if (store.filterActive()) {
+                <span class="muted"
+                  >{{ store.visibleResults().length }} of {{ store.count() }} loaded papers
+                  match</span
+                >
+              }
+            </div>
+          }
+
+          @for (w of store.visibleResults(); track w.id) {
+            <app-paper-card [work]="w" [highlight]="store.highlight()" />
+          } @empty {
+            @if (store.count()) {
+              <div class="empty">No loaded papers match this filter.</div>
+            } @else {
+              <div class="empty">No papers found. Try broader terms or fewer AND conditions.</div>
+            }
+          }
+
+          @if (store.pageCount() > 1) {
+            <nav class="pager" aria-label="Pagination">
+              <button
+                type="button"
+                class="step"
+                (click)="goTo(store.page() - 1)"
+                [disabled]="store.page() <= 1"
+              >
+                ← Previous
+              </button>
+              <ol>
+                @for (item of pages(); track $index) {
+                  <li>
+                    @if (item === 'gap') {
+                      <span class="gap" aria-hidden="true">…</span>
+                    } @else {
+                      <button
+                        type="button"
+                        class="num"
+                        [class.current]="item === store.page()"
+                        [attr.aria-current]="item === store.page() ? 'page' : null"
+                        [attr.aria-label]="'Page ' + item"
+                        (click)="goTo(item)"
+                      >
+                        {{ item | number }}
+                      </button>
+                    }
+                  </li>
+                }
+              </ol>
+              <button
+                type="button"
+                class="step"
+                (click)="goTo(store.page() + 1)"
+                [disabled]="store.page() >= store.pageCount()"
+              >
+                Next →
+              </button>
+            </nav>
+          }
+        } @else {
+          <div class="welcome">
+            <h2>Find research papers</h2>
+            <p>Search the CORE open-access index. Try an example:</p>
+            <div class="examples">
+              <button type="button" (click)="example('drone')">drone</button>
+              <button type="button" (click)="example('(drone AND (package OR delivery))')">
+                (drone AND (package OR delivery))
+              </button>
+              <button
+                type="button"
+                (click)="example('title:&quot;machine learning&quot; AND yearPublished>2020')"
+              >
+                title:"machine learning" AND yearPublished&gt;2020
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+
+      <aside class="sidebar">
+        <app-chart-panel />
+        <app-reading-list-panel />
+      </aside>
+    </div>
+  }
 </main>
