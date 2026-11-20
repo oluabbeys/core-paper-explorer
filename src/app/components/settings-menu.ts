@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { SettingsService } from '../core/settings.service';
+import { SettingsService, cleanApiKey } from '../core/settings.service';
 
 @Component({
   selector: 'app-settings-menu',
@@ -22,8 +22,11 @@ import { SettingsService } from '../core/settings.service';
           autocomplete="off"
           placeholder="Paste your key"
           [ngModel]="settings.apiKey()"
-          (ngModelChange)="settings.apiKey.set($event)"
+          (ngModelChange)="setKey($event)"
         />
+        @if (cleaned()) {
+          <span class="note">Removed hidden spaces or line breaks from the pasted key.</span>
+        }
         <p>
           Without a key CORE applies strict rate limits. Get a free key at
           <a href="https://core.ac.uk/services/api" target="_blank" rel="noopener">core.ac.uk/services/api</a>.
@@ -50,6 +53,7 @@ import { SettingsService } from '../core/settings.service';
     input { padding: .45rem .6rem; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--bg); }
     p { margin: 0; color: var(--muted); line-height: 1.45; }
     a { color: var(--accent); }
+    .note { color: #a15c07; font-size: .76rem; }
     .row { display: flex; justify-content: flex-end; gap: .4rem; }
     .ghost { border: 1px solid var(--border-strong); background: none; border-radius: 8px; padding: .3rem .6rem; cursor: pointer; font-size: .78rem; }
   `,
@@ -57,4 +61,11 @@ import { SettingsService } from '../core/settings.service';
 export class SettingsMenu {
   protected readonly settings = inject(SettingsService);
   protected readonly open = signal(false);
+  protected readonly cleaned = signal(false);
+
+  protected setKey(raw: string): void {
+    const key = cleanApiKey(raw);
+    this.cleaned.set(key !== (raw ?? '').trim() && !!raw);
+    this.settings.apiKey.set(key);
+  }
 }

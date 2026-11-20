@@ -6,15 +6,25 @@ const KEY_API = 'cpe.apiKey';
 const KEY_RECENT = 'cpe.recent';
 const MAX_RECENT = 6;
 
+/**
+ * API keys copied from emails or web pages often carry invisible characters
+ * (zero-width spaces, non-breaking spaces, line breaks). Browsers refuse to send
+ * a header containing them, which surfaces as a network error, so keep only
+ * printable ASCII.
+ */
+export function cleanApiKey(raw: string): string {
+  return (raw ?? '').replace(/[^\x21-\x7E]/g, '');
+}
+
 /** User preferences persisted in localStorage: CORE API key and recent searches. */
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
-  readonly apiKey = signal<string>(safeStorage.get(KEY_API, ''));
+  readonly apiKey = signal<string>(cleanApiKey(safeStorage.get(KEY_API, '')));
   readonly recent = signal<string[]>(safeStorage.get<string[]>(KEY_RECENT, []));
 
   constructor() {
     effect(() => {
-      const k = this.apiKey().trim();
+      const k = cleanApiKey(this.apiKey());
       if (k) safeStorage.set(KEY_API, k);
       else safeStorage.remove(KEY_API);
     });
@@ -34,7 +44,7 @@ export class SettingsService {
 
 /** Adds `Authorization: Bearer <key>` to CORE requests when the user has saved an API key. */
 export const apiKeyInterceptor: HttpInterceptorFn = (req, next) => {
-  const key = inject(SettingsService).apiKey().trim();
+  const key = cleanApiKey(inject(SettingsService).apiKey());
   const isCore = req.url.includes('/v3/');
   return key && isCore ? next(req.clone({ setHeaders: { Authorization: `Bearer ${key}` } })) : next(req);
 };

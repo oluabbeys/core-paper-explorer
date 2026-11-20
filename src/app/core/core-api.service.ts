@@ -34,7 +34,10 @@ export class CoreApiService {
     return this.http.get<Partial<CoreSearchResponse>>(`${this.base}/search/works`, { params }).pipe(
       map((res) => normalizeResponse(res, safeLimit, offset)),
       tap((res) => this.cache.set(key, res)),
-      catchError((err: HttpErrorResponse) => throwError(() => new Error(describeError(err)))),
+      catchError((err: HttpErrorResponse) => {
+        console.error('[CORE API]', err.status, err.message, err.error);
+        return throwError(() => new Error(describeError(err)));
+      }),
     );
   }
 }
@@ -55,7 +58,7 @@ export function describeError(err: HttpErrorResponse): string {
   const apiMsg = typeof err.error === 'object' && err.error?.message ? ` (${err.error.message})` : '';
   switch (err.status) {
     case 0:
-      return 'Could not reach the CORE API. Check your connection and try again.';
+      return 'Could not reach the CORE API. Check your connection (and that the dev server is still running), then try again. If this started after adding an API key, paste the key again under ⚙ Settings.';
     case 400:
       return `CORE could not understand that query${apiMsg}. Check brackets, quotes and AND/OR/NOT operators.`;
     case 401:

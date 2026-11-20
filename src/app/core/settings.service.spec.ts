@@ -1,7 +1,7 @@
 import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { SettingsService, apiKeyInterceptor } from './settings.service';
+import { SettingsService, apiKeyInterceptor, cleanApiKey } from './settings.service';
 
 describe('SettingsService', () => {
   beforeEach(() => {
@@ -9,6 +9,10 @@ describe('SettingsService', () => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(withInterceptors([apiKeyInterceptor])), provideHttpClientTesting()],
     });
+  });
+
+  it('strips invisible characters that would make the browser reject the header', () => {
+    expect(cleanApiKey(' \u200bAbC123\u00a0xyz\n')).toBe('AbC123xyz');
   });
 
   it('keeps the six most recent unique searches, newest first', () => {
